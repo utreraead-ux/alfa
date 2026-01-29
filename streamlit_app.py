@@ -1,151 +1,195 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+from datetime import datetime
 
-# Set the title and favicon that appear in the Browser's tab bar.
 st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+    page_title='Evaluación de tecnologías emergentes',
+    page_icon=':sparkles:',
+    layout='wide',
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+TECH_CATALOG = {
+    'IA generativa': {
+        'descripcion': (
+            'Modelos que crean contenido (texto, imágenes, código) para apoyar la '
+            'planificación didáctica, retroalimentación y creación de materiales.'
+        ),
+        'ejemplos': 'Chatbots, copilotos de escritura, generación de rúbricas.'
+    },
+    'Realidad aumentada (RA)': {
+        'descripcion': (
+            'Superposición de información digital en el entorno físico para enriquecer '
+            'la exploración y el aprendizaje situado.'
+        ),
+        'ejemplos': 'Modelos 3D sobre libros, visitas guiadas interactivas.'
+    },
+    'Realidad virtual (RV)': {
+        'descripcion': (
+            'Entornos inmersivos que permiten simulaciones y experiencias seguras para '
+            'prácticas de alto impacto.'
+        ),
+        'ejemplos': 'Laboratorios virtuales, recorridos históricos.'
+    },
+    'Analítica del aprendizaje': {
+        'descripcion': (
+            'Uso de datos educativos para monitorear el progreso y tomar decisiones '
+            'pedagógicas informadas.'
+        ),
+        'ejemplos': 'Dashboards de seguimiento, alertas tempranas.'
+    },
+    'Microcredenciales digitales': {
+        'descripcion': (
+            'Reconocimientos modulares de competencias que facilitan trayectorias '
+            'formativas flexibles.'
+        ),
+        'ejemplos': 'Badges, certificaciones por competencias.'
+    },
+}
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+EVALUATION_CRITERIA = {
+    'Pertinencia pedagógica': {
+        'weight': 0.30,
+        'help': 'Alineación con objetivos de aprendizaje y modelos pedagógicos.'
+    },
+    'Facilidad de implementación': {
+        'weight': 0.20,
+        'help': 'Requerimientos técnicos, tiempo y esfuerzo para adoptarla.'
+    },
+    'Accesibilidad e inclusión': {
+        'weight': 0.20,
+        'help': 'Considera diversidad, accesibilidad y equidad.'
+    },
+    'Evidencia de impacto': {
+        'weight': 0.20,
+        'help': 'Disponibilidad de evidencia o casos de éxito.'
+    },
+    'Costo-beneficio': {
+        'weight': 0.10,
+        'help': 'Relación entre inversión y valor educativo.'
+    },
+}
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+if 'evaluations' not in st.session_state:
+    st.session_state.evaluations = []
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+if 'custom_tech' not in st.session_state:
+    st.session_state.custom_tech = {}
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+st.title('📘 Evaluación de tecnologías emergentes en educación')
+st.markdown(
+    'Aplicación para estudiantes de la maestría en eInnovación Educativa. '
+    'Aquí puedes evaluar tecnologías emergentes y comparar su potencial '
+    'para apoyar experiencias de aprendizaje significativas.'
+)
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
+st.divider()
+
+with st.sidebar:
+    st.header('Catálogo de tecnologías')
+    st.caption('Gestiona el listado base o agrega nuevas tecnologías.')
+
+    custom_name = st.text_input('Nueva tecnología')
+    custom_description = st.text_area('Descripción breve', height=120)
+    custom_examples = st.text_input('Ejemplos o usos sugeridos')
+
+    if st.button('Agregar al catálogo', use_container_width=True):
+        if not custom_name.strip():
+            st.warning('Agrega un nombre para la tecnología.')
+        else:
+            st.session_state.custom_tech[custom_name.strip()] = {
+                'descripcion': custom_description.strip() or 'Descripción pendiente.',
+                'ejemplos': custom_examples.strip() or 'Ejemplos por definir.'
+            }
+            st.success('Tecnología agregada al catálogo.')
+
+catalog = {**TECH_CATALOG, **st.session_state.custom_tech}
+
+main_col, summary_col = st.columns([2, 1], gap='large')
+
+with main_col:
+    st.subheader('Nueva evaluación')
+    selected_tech = st.selectbox(
+        'Selecciona la tecnología a evaluar',
+        options=sorted(catalog.keys()),
     )
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+    tech_info = catalog.get(selected_tech, {})
+    st.markdown(f"**Descripción:** {tech_info.get('descripcion', 'Sin descripción')}" )
+    st.markdown(f"**Ejemplos:** {tech_info.get('ejemplos', 'Sin ejemplos')}" )
 
-    return gdp_df
+    with st.form('evaluation_form', clear_on_submit=False):
+        st.markdown('### Criterios de evaluación (1 = Bajo, 5 = Alto)')
+        scores = {}
 
-gdp_df = get_gdp_data()
+        for criteria, metadata in EVALUATION_CRITERIA.items():
+            scores[criteria] = st.slider(
+                criteria,
+                min_value=1,
+                max_value=5,
+                value=3,
+                help=metadata['help'],
+            )
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+        notes = st.text_area('Observaciones o recomendaciones', height=120)
+        submit = st.form_submit_button('Guardar evaluación')
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
+    if submit:
+        weighted_score = sum(
+            scores[criteria] * metadata['weight']
+            for criteria, metadata in EVALUATION_CRITERIA.items()
         )
+        st.session_state.evaluations.append({
+            'Tecnología': selected_tech,
+            'Fecha': datetime.now().strftime('%Y-%m-%d %H:%M'),
+            **scores,
+            'Puntaje ponderado': round(weighted_score, 2),
+            'Observaciones': notes.strip(),
+        })
+        st.success('Evaluación registrada.')
+        st.progress(min(weighted_score / 5, 1.0))
+
+with summary_col:
+    st.subheader('Resumen')
+
+    if st.session_state.evaluations:
+        eval_df = pd.DataFrame(st.session_state.evaluations)
+        st.metric('Evaluaciones registradas', len(eval_df))
+        st.metric(
+            'Puntaje promedio',
+            f"{eval_df['Puntaje ponderado'].mean():.2f} / 5"
+        )
+
+        st.markdown('**Promedio por tecnología**')
+        avg_scores = (
+            eval_df.groupby('Tecnología')['Puntaje ponderado']
+            .mean()
+            .sort_values(ascending=False)
+        )
+        st.bar_chart(avg_scores)
+    else:
+        st.info('Aún no hay evaluaciones. Completa el formulario para iniciar.')
+
+st.divider()
+
+st.subheader('Historial de evaluaciones')
+
+if st.session_state.evaluations:
+    eval_df = pd.DataFrame(st.session_state.evaluations)
+    filter_tech = st.multiselect(
+        'Filtrar por tecnología',
+        options=sorted(eval_df['Tecnología'].unique()),
+        default=sorted(eval_df['Tecnología'].unique()),
+    )
+    filtered_df = eval_df[eval_df['Tecnología'].isin(filter_tech)]
+
+    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+
+    csv = filtered_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        'Descargar CSV',
+        data=csv,
+        file_name='evaluaciones_tecnologias.csv',
+        mime='text/csv',
+    )
+else:
+    st.warning('No hay evaluaciones para mostrar todavía.')

@@ -1,0 +1,49 @@
+fecha,centro_costo,categoria,monto,tipo,descripcion
+2025-01-03,Ventas,Ingreso por ventas,125000,ingreso,Factura clientes enero
+2025-01-05,Operaciones,Costo de ventas,52000,gasto,Compra de inventario
+2025-01-07,Administracion,Gastos administrativos,18000,gasto,Nomina administrativa
+2025-01-10,Operaciones,Gastos operativos,11000,gasto,Servicios planta
+2025-01-12,Tesoreria,Flujo de caja operativo,98000,flujo_entrada,Cobro cartera
+2025-01-13,Tesoreria,Flujo de caja operativo,46000,flujo_salida,Pago proveedores
+2025-01-15,Tesoreria,Flujo de caja financiamiento,25000,flujo_entrada,Desembolso credito
+2025-01-18,Tesoreria,Flujo de caja inversion,12000,flujo_salida,Compra activo fijo
+2025-02-03,Ventas,Ingreso por ventas,132000,ingreso,Factura clientes febrero
+2025-02-05,Operaciones,Costo de ventas,56000,gasto,Compra de inventario
+2025-02-07,Administracion,Gastos administrativos,18200,gasto,Nomina administrativa
+2025-02-10,Operaciones,Gastos operativos,10400,gasto,Servicios planta
+2025-02-12,Tesoreria,Flujo de caja operativo,102000,flujo_entrada,Cobro cartera
+2025-02-13,Tesoreria,Flujo de caja operativo,48800,flujo_salida,Pago proveedores
+2025-02-15,Tesoreria,Flujo de caja financiamiento,0,flujo_entrada,Sin ingresos de deuda
+2025-02-18,Tesoreria,Flujo de caja inversion,9000,flujo_salida,Capex tecnologia
+2025-03-03,Ventas,Ingreso por ventas,139000,ingreso,Factura clientes marzo
+2025-03-05,Operaciones,Costo de ventas,57500,gasto,Compra de inventario
+2025-03-07,Administracion,Gastos administrativos,18500,gasto,Nomina administrativa
+2025-03-10,Operaciones,Gastos operativos,11200,gasto,Servicios planta
+2025-03-12,Tesoreria,Flujo de caja operativo,109000,flujo_entrada,Cobro cartera
+2025-03-13,Tesoreria,Flujo de caja operativo,50200,flujo_salida,Pago proveedores
+2025-03-15,Tesoreria,Flujo de caja financiamiento,0,flujo_entrada,Sin ingresos de deuda
+2025-03-18,Tesoreria,Flujo de caja inversion,10500,flujo_salida,Capex mantenimiento
+2025-04-03,Ventas,Ingreso por ventas,141000,ingreso,Factura clientes abril
+2025-04-05,Operaciones,Costo de ventas,59000,gasto,Compra de inventario
+2025-04-07,Administracion,Gastos administrativos,18800,gasto,Nomina administrativa
+2025-04-10,Operaciones,Gastos operativos,11400,gasto,Servicios planta
+2025-04-12,Tesoreria,Flujo de caja operativo,111500,flujo_entrada,Cobro cartera
+2025-04-13,Tesoreria,Flujo de caja operativo,51700,flujo_salida,Pago proveedores
+2025-04-15,Tesoreria,Flujo de caja financiamiento,15000,flujo_entrada,Linea de credito
+2025-04-18,Tesoreria,Flujo de caja inversion,13000,flujo_salida,Capex expansion
+2025-05-03,Ventas,Ingreso por ventas,148500,ingreso,Factura clientes mayo
+2025-05-05,Operaciones,Costo de ventas,61500,gasto,Compra de inventario
+2025-05-07,Administracion,Gastos administrativos,19200,gasto,Nomina administrativa
+2025-05-10,Operaciones,Gastos operativos,11750,gasto,Servicios planta
+2025-05-12,Tesoreria,Flujo de caja operativo,117000,flujo_entrada,Cobro cartera
+2025-05-13,Tesoreria,Flujo de caja operativo,53500,flujo_salida,Pago proveedores
+2025-05-15,Tesoreria,Flujo de caja financiamiento,0,flujo_entrada,Sin ingresos de deuda
+2025-05-18,Tesoreria,Flujo de caja inversion,14000,flujo_salida,Capex mantenimiento
+2025-06-03,Ventas,Ingreso por ventas,154000,ingreso,Factura clientes junio
+2025-06-05,Operaciones,Costo de ventas,63000,gasto,Compra de inventario
+2025-06-07,Administracion,Gastos administrativos,19500,gasto,Nomina administrativa
+2025-06-10,Operaciones,Gastos operativos,12000,gasto,Servicios planta
+2025-06-12,Tesoreria,Flujo de caja operativo,122000,flujo_entrada,Cobro cartera
+2025-06-13,Tesoreria,Flujo de caja operativo,54800,flujo_salida,Pago proveedores
+2025-06-15,Tesoreria,Flujo de caja financiamiento,0,flujo_entrada,Sin ingresos de deuda
+2025-06-18,Tesoreria,Flujo de caja inversion,15500,flujo_salida,Capex infraestructura

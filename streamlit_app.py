@@ -1,151 +1,143 @@
-import streamlit as st
-import pandas as pd
-import math
 from pathlib import Path
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+import pandas as pd
+import streamlit as st
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+st.set_page_config(page_title="Demo de automatización financiera", page_icon="📊", layout="wide")
+
+DATA_FILENAME = Path(__file__).parent / "data" / "accounting_transactions.csv"
+
 
 @st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+def load_accounting_data() -> pd.DataFrame:
+    df = pd.read_csv(DATA_FILENAME)
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    df["mes"] = df["fecha"].dt.to_period("M").astype(str)
+    return df
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+def build_income_statement(df: pd.DataFrame) -> pd.DataFrame:
+    pivot = (
+        df[df["tipo"].isin(["ingreso", "gasto"])]
+        .pivot_table(index="mes", columns="tipo", values="monto", aggfunc="sum", fill_value=0)
+        .reset_index()
+    )
+    pivot["ingreso"] = pivot.get("ingreso", 0)
+    pivot["gasto"] = pivot.get("gasto", 0)
+    pivot["utilidad_operativa"] = pivot["ingreso"] - pivot["gasto"]
+    pivot["margen_operativo_pct"] = (pivot["utilidad_operativa"] / pivot["ingreso"].replace(0, pd.NA) * 100).fillna(0)
+    return pivot
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
+def build_cashflow(df: pd.DataFrame) -> pd.DataFrame:
+    temp = df.copy()
+    temp["monto_signed"] = temp["monto"]
+    temp.loc[temp["tipo"].str.contains("salida"), "monto_signed"] *= -1
+
+    flow = (
+        temp[temp["tipo"].str.startswith("flujo")]
+        .pivot_table(index="mes", columns="categoria", values="monto_signed", aggfunc="sum", fill_value=0)
+        .reset_index()
     )
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+    for col in [
+        "Flujo de caja operativo",
+        "Flujo de caja inversion",
+        "Flujo de caja financiamiento",
+    ]:
+        if col not in flow:
+            flow[col] = 0
 
-    return gdp_df
+    flow["flujo_neto"] = flow[
+        ["Flujo de caja operativo", "Flujo de caja inversion", "Flujo de caja financiamiento"]
+    ].sum(axis=1)
 
-gdp_df = get_gdp_data()
+    return flow
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+def to_currency(value: float) -> str:
+    return f"${value:,.0f}"
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
 
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
+st.title("📈 Automatización de reportes financieros")
+st.write(
+    "Genera automáticamente informes financieros, reportes de gestión e indicadores KPI "
+    "a partir de datos del sistema contable."
 )
 
-''
-''
+data = load_accounting_data()
 
+meses = sorted(data["mes"].unique())
+selected_months = st.multiselect("Meses a analizar", meses, default=meses)
+if not selected_months:
+    st.warning("Selecciona al menos un mes para generar los reportes.")
+    st.stop()
 
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
+filtered = data[data["mes"].isin(selected_months)].copy()
 
-st.header(f'GDP in {to_year}', divider='gray')
+income = build_income_statement(filtered)
+cashflow = build_cashflow(filtered)
 
-''
+# Indicadores de gestión
+ventas_totales = income["ingreso"].sum()
+gastos_totales = income["gasto"].sum()
+utilidad_total = income["utilidad_operativa"].sum()
+margen_promedio = (utilidad_total / ventas_totales * 100) if ventas_totales else 0
+runway_meses = (cashflow["flujo_neto"].sum() / (gastos_totales / max(len(income), 1))) if gastos_totales else 0
 
-cols = st.columns(4)
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Ventas acumuladas", to_currency(ventas_totales))
+k2.metric("Gastos acumulados", to_currency(gastos_totales))
+k3.metric("Utilidad operativa", to_currency(utilidad_total), f"{margen_promedio:.1f}% margen")
+k4.metric("Runway estimado", f"{runway_meses:.1f} meses")
 
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
+st.divider()
+left, right = st.columns(2)
 
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
+with left:
+    st.subheader("Informe financiero: Estado de resultados")
+    st.dataframe(
+        income.rename(
+            columns={
+                "mes": "Mes",
+                "ingreso": "Ingresos",
+                "gasto": "Gastos",
+                "utilidad_operativa": "Utilidad operativa",
+                "margen_operativo_pct": "Margen operativo %",
+            }
+        ),
+        width="stretch",
+    )
+    st.line_chart(income, x="mes", y=["ingreso", "gasto", "utilidad_operativa"])
 
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
+with right:
+    st.subheader("Reporte de gestión: Flujo de caja")
+    st.dataframe(cashflow.rename(columns={"mes": "Mes"}), width="stretch")
+    st.bar_chart(cashflow, x="mes", y=["Flujo de caja operativo", "Flujo de caja inversion", "Flujo de caja financiamiento", "flujo_neto"])
 
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+st.divider()
+st.subheader("Análisis de indicadores")
+
+monthly_kpi = income[["mes", "ingreso", "gasto", "utilidad_operativa", "margen_operativo_pct"]].copy()
+monthly_kpi["ratio_gasto_sobre_ventas_pct"] = (
+    monthly_kpi["gasto"] / monthly_kpi["ingreso"].replace(0, pd.NA) * 100
+).fillna(0)
+
+st.dataframe(monthly_kpi.rename(columns={
+    "mes": "Mes",
+    "ingreso": "Ingresos",
+    "gasto": "Gastos",
+    "utilidad_operativa": "Utilidad",
+    "margen_operativo_pct": "Margen %",
+    "ratio_gasto_sobre_ventas_pct": "Ratio gasto/ventas %",
+}), width="stretch")
+
+csv_export = monthly_kpi.to_csv(index=False).encode("utf-8")
+st.download_button(
+    "Descargar análisis de indicadores (CSV)",
+    data=csv_export,
+    file_name="analisis_indicadores.csv",
+    mime="text/csv",
+)
+
+st.caption("Demo generada con Streamlit. Datos contables simulados para fines de demostración.")
